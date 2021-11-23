@@ -12,8 +12,7 @@ namespace API.Models.Persistence
         public DbSet<User> Users { get; set; }
         public DbSet<Image> Images { get; set; }
         public DbSet<Tag> Tags { get; set; }
-        protected override void OnConfiguring
-        (DbContextOptionsBuilder optionsBuilder)
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlite("FileName=magic8ball.db");
         }

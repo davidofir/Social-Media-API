@@ -7,10 +7,13 @@ using System.Web;
 using API.Models.Entities;
 using API.Models.Persistence;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.Extensions.Logging;
 
 namespace API.Controllers
 {
+
     [ApiController]
     [Route("api/[controller]")]
 
@@ -33,16 +36,16 @@ namespace API.Controllers
                 return NotFound();
         }
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] User user)
+        public async Task<IActionResult> AddUsers([FromBody] User user)
         {
-            var emailExists = _context.Users.FirstOrDefault(usr => usr.Email.ToLower().Equals(user.Email.ToLower()));
-            if (!ModelState.IsValid || emailExists == default)
+            var emailExists = await _context.Users.FirstOrDefaultAsync(usr => usr.Email.ToLower().Equals(user.Email.ToLower()));
+            if (!ModelState.IsValid && emailExists != null)
             {
-                return StatusCode(422);
+                return BadRequest();
             }
             await _context.AddAsync(user);
             await _context.SaveChangesAsync();
-            return Ok();
+            return Ok(user);
         }
     }
 }
