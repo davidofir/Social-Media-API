@@ -39,7 +39,7 @@ namespace API.Controllers
         public async Task<IActionResult> AddUsers([FromBody] User user)
         {
             var emailExists = await _context.Users.FirstOrDefaultAsync(usr => usr.Email.ToLower().Equals(user.Email.ToLower()));
-            if (!ModelState.IsValid && emailExists != null)
+            if (!ModelState.IsValid || emailExists != null)
             {
                 return BadRequest();
             }
