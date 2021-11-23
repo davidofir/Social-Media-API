@@ -20,6 +20,11 @@ namespace API.Controllers
         {
             _context = context;
         }
+        [HttpGet]
+        public async Task<IActionResult> GetAllImages()
+        {
+            return Ok();
+        }
         [HttpGet("{id}")]
         public async Task<IActionResult> GetImageById(string id)
         {
