@@ -7,6 +7,7 @@ using System.Web;
 using API.Models.Entities;
 using API.Models.Persistence;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace API.Controllers
 {
@@ -34,6 +35,11 @@ namespace API.Controllers
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] User user)
         {
+            var emailExists = _context.Users.FirstOrDefault(usr => usr.Email.ToLower().Equals(user.Email.ToLower()));
+            if (!ModelState.IsValid || emailExists == default)
+            {
+                return StatusCode(422);
+            }
             await _context.AddAsync(user);
             await _context.SaveChangesAsync();
             return Ok();
