@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Web;
 using API.Models.Entities;
 using API.Models.Persistence;
+using API.Models.Responses;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Razor.TagHelpers;
 //using Microsoft.EntityFrameworkCore;
@@ -21,9 +22,12 @@ namespace API.Controllers
             _context = context;
         }
         [HttpGet]
-        public async Task<IActionResult> GetAllImages()
+        public async Task<IActionResult> GetAllImages([FromQuery] int pageNumber)
         {
-            return Ok();
+            var result = _context.Images.OrderBy(x => x.PostingDate).Skip((pageNumber - 1) * 10).Take(10);
+            var total = await _context.Images.CountAsync();
+            var response = ResponseHelper<Image>.GetPagedResponse("/api/images", result, pageNumber, 10, total);
+            return Ok(response);
         }
         [HttpGet("{id}")]
         public async Task<IActionResult> GetImageById(string id)
