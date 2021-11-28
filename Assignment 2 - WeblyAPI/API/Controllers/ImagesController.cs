@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Data.Entity;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
@@ -9,7 +8,7 @@ using API.Models.Persistence;
 using API.Models.Responses;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Razor.TagHelpers;
-//using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 namespace API.Controllers
 {
     [ApiController]
@@ -48,6 +47,16 @@ namespace API.Controllers
             if (data == null)
                 return NotFound();
             return Ok(data);
+        }
+        [HttpDelete]
+        public async Task<IActionResult> DeleteImages()
+        {
+            if (_context.Tags.Any())
+                _context.Tags.Remove(_context.Tags.First());
+            if (_context.Images.Any())
+                _context.Images.Remove(_context.Images.First());
+            await _context.SaveChangesAsync();
+            return Ok();
         }
     }
 }

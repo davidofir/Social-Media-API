@@ -1,15 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Data.Entity;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
+using API.Models.DTOs;
 using API.Models.Entities;
 using API.Models.Helpers;
 using API.Models.Persistence;
 using Microsoft.AspNetCore.Mvc;
-//using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
@@ -31,10 +32,19 @@ namespace API.Controllers
         //api/users/{id}
         public async Task<IActionResult> GetUserById(string id)
         {
-            var user = await _context.Users.FindAsync(new Guid(id));
-
+            var user = await _context.Users.Include(x => x.Images).ThenInclude(x => x.Tags).SingleOrDefaultAsync(x => x.Id.Equals(new Guid(id)));
+            var imgAddressList = new List<string>();
+            foreach (var img in user.Images)
+            {
+                imgAddressList.Add(img.Url);
+            }
             if (user != null)
-                return Ok(user);
+                return Ok(new UserDTO
+                {
+                    Email = user.Email,
+                    imageUrls = imgAddressList,
+                    Name = user.Name
+                });
             else
                 return NotFound();
         }
@@ -53,28 +63,38 @@ namespace API.Controllers
         [HttpPost("{id}/image")]
         public async Task<IActionResult> AddImageToUser(string id, [FromBody] Image img)
         {
-            var user = await _context.Users.FindAsync(new Guid(id));
+            var user = await _context.Users.Include(x => x.Images).ThenInclude(x => x.Tags).SingleOrDefaultAsync(x => x.Id.Equals(new Guid(id)));
             if (user == null)
             {
                 return BadRequest();
             }
             var tagsList = ImageHelper.GetTags(img.Url);
-            img.User = user;
+
+            img.PostingDate = DateTime.Now;
             img.Tags = new List<Tag>();
-            foreach (var tg in tagsList)
+            if (tagsList.Any())
             {
-                if (img.Tags.FirstOrDefault(x => x.Text.ToLower().Equals(tg.ToLower())) == null)
+                foreach (var tag in tagsList)
                 {
-                    img.Tags.Add(new Tag
+                    var existingTag = img.Tags.FirstOrDefault(x => x.Text.ToLower().Equals(tag.ToLower()));
+                    if (existingTag == null)
                     {
-                        Text = tg
-                    });
+                        img.Tags.Add(new Tag
+                        {
+                            Text = tag
+                        });
+                    }
+                    else
+                    {
+                        existingTag.Images.Add(img);
+                    }
                 }
+                img.User = user;
+                var postedImage = await _context.Images.AddAsync(img);
+                user.Images.Add(img);
+                await _context.SaveChangesAsync();
             }
-            _context.Images.Add(img);
-            user.Images.Add(img);
-            await _context.SaveChangesAsync();
-            return Ok(user);
+            return Ok();
         }
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
@@ -83,7 +103,7 @@ namespace API.Controllers
             var user = await _context.Users.FindAsync(convertedId);
             if (user == null)
                 return BadRequest();
-            await _context.Images.Include(x => x.User).FirstOrDefaultAsync(x => x.User.Id.ToString().ToLower().Equals(convertedId.ToString().ToLower()));
+            await _context.Images.Include(x => x.User).FirstOrDefaultAsync(x => x.User.Id.Equals(new Guid(id)));
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
             return Ok();
