@@ -9,6 +9,6 @@ namespace API.Models.DTOs
     {
         public string Email { get; set; }
         public string Name { get; set; }
-        public List<string> imageUrls { get; set; } = new List<string>();
+        public IEnumerable<string> imageUrls { get; set; }
     }
 }

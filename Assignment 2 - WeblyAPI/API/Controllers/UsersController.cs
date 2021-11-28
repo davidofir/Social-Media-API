@@ -8,6 +8,7 @@ using API.Models.DTOs;
 using API.Models.Entities;
 using API.Models.Helpers;
 using API.Models.Persistence;
+using API.Models.Responses;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
@@ -94,7 +95,55 @@ namespace API.Controllers
                 user.Images.Add(img);
                 await _context.SaveChangesAsync();
             }
-            return Ok();
+            var imgAddressList = new List<string>();
+            foreach (var image in user.Images)
+            {
+                imgAddressList.Add(image.Url);
+            }
+            var userDTO = new UserDTO
+            {
+                Email = user.Email,
+                imageUrls = imgAddressList,
+                Name = user.Name
+            };
+            return Ok(userDTO);
+        }
+        [HttpGet("{id}/images")]
+        public async Task<IActionResult> GetUserImages(string id, [FromQuery] int pageNumber)
+        {
+            var user = await _context.Users.FindAsync(new Guid(id));
+            if (user == null)
+            {
+                return BadRequest();
+            }
+            var txtImgList = new List<string>();
+            var result = _context.Images.Include(x => x.User).Where(x => x.User.Id.Equals(new Guid(id))).OrderBy(x => x.PostingDate);
+            var total = await result.CountAsync();
+            var imageDTOList = new List<ImageDTO>();
+            if (total >= 10)
+            {
+                for (int i = 0; i < 10; i++)
+                {
+                    imageDTOList.Add(new ImageDTO
+                    {
+                        Url = result.ElementAt(i).Url,
+                        Id = result.ElementAt(i).Id
+                    });
+                }
+                var response = ResponseHelper<ImageDTO>.GetPagedResponse($"api/users/{id}/images", imageDTOList, pageNumber, 10, total);
+
+                return Ok(response);
+            }
+            foreach (var img in result)
+            {
+                imageDTOList.Add(new ImageDTO
+                {
+                    Id = img.Id,
+                    Url = img.Url
+                });
+            }
+            var smallerResponse = ResponseHelper<ImageDTO>.GetPagedResponse($"api/users/{id}/images", imageDTOList, 0, total, total);
+            return Ok(smallerResponse);
         }
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
