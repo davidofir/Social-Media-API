@@ -9,7 +9,7 @@ using API.Models.Entities;
 using API.Models.Helpers;
 using API.Models.Persistence;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+//using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
@@ -63,21 +63,27 @@ namespace API.Controllers
             img.Tags = new List<Tag>();
             foreach (var tg in tagsList)
             {
-                img.Tags.Add(new Tag
+                if (img.Tags.FirstOrDefault(x => x.Text.ToLower().Equals(tg.ToLower())) == null)
                 {
-                    Text = tg
-                });
+                    img.Tags.Add(new Tag
+                    {
+                        Text = tg
+                    });
+                }
             }
             _context.Images.Add(img);
+            user.Images.Add(img);
             await _context.SaveChangesAsync();
-            return Ok(img);
+            return Ok(user);
         }
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {
-            var user = await _context.Users.FindAsync(new Guid(id));
+            var convertedId = new Guid(id);
+            var user = await _context.Users.FindAsync(convertedId);
             if (user == null)
                 return BadRequest();
+            await _context.Images.Include(x => x.User).FirstOrDefaultAsync(x => x.User.Id.ToString().ToLower().Equals(convertedId.ToString().ToLower()));
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
             return Ok();
