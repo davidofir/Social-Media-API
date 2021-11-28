@@ -9,5 +9,6 @@ namespace API.Models.DTOs
     {
         public Guid Id { get; set; }
         public string Url { get; set; }
+        public string UserName { get; set; }
     }
 }

@@ -29,26 +29,6 @@ namespace API.Controllers
         {
             _context = context;
         }
-        [HttpGet("{id}")]
-        //api/users/{id}
-        public async Task<IActionResult> GetUserById(string id)
-        {
-            var user = await _context.Users.Include(x => x.Images).ThenInclude(x => x.Tags).SingleOrDefaultAsync(x => x.Id.Equals(new Guid(id)));
-            var imgAddressList = new List<string>();
-            foreach (var img in user.Images)
-            {
-                imgAddressList.Add(img.Url);
-            }
-            if (user != null)
-                return Ok(new UserDTO
-                {
-                    Email = user.Email,
-                    imageUrls = imgAddressList,
-                    Name = user.Name
-                });
-            else
-                return NotFound();
-        }
         [HttpPost]
         public async Task<IActionResult> AddUsers([FromBody] User user)
         {
@@ -108,6 +88,43 @@ namespace API.Controllers
             };
             return Ok(userDTO);
         }
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetUserAndLast10Images(string id)
+        {
+            var user = await _context.Users.FindAsync(new Guid(id));
+            if (user == null)
+                return BadRequest();
+
+            var imagesList = new List<ImageDTO>();
+            var images = _context.Images.Include(x => x.User).Where(x => x.User.Id.Equals(new Guid(id))).OrderByDescending(x => x.PostingDate);
+            var total = await images.CountAsync();
+            if (total >= 10)
+            {
+                for (int i = 0; i < 10; i++)
+                {
+                    imagesList.Add(new ImageDTO
+                    {
+                        Id = images.ElementAt(i).Id,
+                        Url = images.ElementAt(i).Url,
+                        UserName = user.Name
+                    });
+                }
+
+                var response = ResponseHelper<ImageDTO>.GetPagedResponse($"api/users/{id}", imagesList, 0, 10, total);
+                return Ok(response);
+            }
+            foreach (var image in images)
+            {
+                imagesList.Add(new ImageDTO
+                {
+                    Id = image.Id,
+                    Url = image.Url,
+                    UserName = user.Name
+                });
+            }
+            var smallerResponse = ResponseHelper<ImageDTO>.GetPagedResponse($"api/users/{id}", imagesList, 0, total, total);
+            return Ok(smallerResponse);
+        }
         [HttpGet("{id}/images")]
         public async Task<IActionResult> GetUserImages(string id, [FromQuery] int pageNumber)
         {
@@ -139,10 +156,11 @@ namespace API.Controllers
                 imageDTOList.Add(new ImageDTO
                 {
                     Id = img.Id,
-                    Url = img.Url
+                    Url = img.Url,
+                    UserName = user.Name
                 });
             }
-            var smallerResponse = ResponseHelper<ImageDTO>.GetPagedResponse($"api/users/{id}/images", imageDTOList, 0, total, total);
+            var smallerResponse = ResponseHelper<ImageDTO>.GetPagedResponse($"api/users/{id}/images", imageDTOList, pageNumber, total, total);
             return Ok(smallerResponse);
         }
         [HttpDelete("{id}")]

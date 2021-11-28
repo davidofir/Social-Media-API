@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
+using API.Models.Persistence;
 
 namespace API.Models.Responses
 {
