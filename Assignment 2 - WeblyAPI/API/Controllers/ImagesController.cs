@@ -25,7 +25,7 @@ namespace API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllImages([FromQuery] int pageNumber)
         {
-            var result = _context.Images.Include(x => x.User).OrderBy(x => x.PostingDate).Skip((pageNumber - 1) * 10).Take(10);
+            var result = _context.Images.Include(x => x.User).OrderBy(x => x.PostingDate);
             var imgList = new List<ImageDTO>();
             foreach (var res in result)
             {

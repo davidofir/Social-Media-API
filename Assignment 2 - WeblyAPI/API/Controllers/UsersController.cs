@@ -72,7 +72,6 @@ namespace API.Controllers
                 }
             }
             user.Images.Add(img);
-
             await _context.SaveChangesAsync();
             return Ok();
         }
@@ -113,39 +112,27 @@ namespace API.Controllers
         }
         // GET api/users/{id}/images v
         [HttpGet("{id}/images")]
-        public async Task<IActionResult> GetUserImages(string id)
+        public async Task<IActionResult> GetUserImages(string id, [FromQuery] int pagenumber)
         {
             var user = await _context.Users.FindAsync(new Guid(id));
             if (user == null)
             {
                 return BadRequest();
             }
-            var imagesList = new List<string>();
+            var imagesList = new List<ImageDTO>();
             var result = _context.Images.Include(x => x.User).Where(x => x.User.Id.Equals(new Guid(id))).OrderBy(x => x.PostingDate);
             var total = await result.CountAsync();
-            if (total >= 10)
-            {
-                for (int i = 0; i < 10; i++)
-                {
-                    imagesList.Add(result.ElementAt(i).Url);
-                }
-                return Ok(new UserDTO
-                {
-                    Email = user.Email,
-                    imageUrls = imagesList,
-                    Name = user.Name
-                });
-            }
             foreach (var image in result)
             {
-                imagesList.Add(image.Url);
+                imagesList.Add(new ImageDTO
+                {
+                    Id = image.Id,
+                    UserName = user.Name,
+                    Url = image.Url
+                });
             }
-            return Ok(new UserDTO
-            {
-                Email = user.Email,
-                imageUrls = imagesList,
-                Name = user.Name
-            });
+            var response = ResponseHelper<ImageDTO>.GetPagedResponse("/api/images", imagesList, pagenumber, 10, total);
+            return Ok(response);
         }
         // DELETE /api/users/{id}
         [HttpDelete("{id}")]
