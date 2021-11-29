@@ -46,49 +46,35 @@ namespace API.Controllers
         [HttpPost("{id}/image")]
         public async Task<IActionResult> AddImageToUser(string id, [FromBody] Image img)
         {
-            var user = await _context.Users.Include(x => x.Images).ThenInclude(x => x.Tags).SingleOrDefaultAsync(x => x.Id.Equals(new Guid(id)));
-            if (user == null)
-            {
-                return BadRequest();
-            }
+            var user = _context.Users.Include(x => x.Images).ThenInclude(x => x.Tags).SingleOrDefault(x => x.Id.Equals(new Guid(id)));
+
             var tagsList = ImageHelper.GetTags(img.Url);
 
+            img.User = user;
             img.PostingDate = DateTime.Now;
             img.Tags = new List<Tag>();
-            if (tagsList.Any())
+            foreach (var tg in tagsList)
             {
-                foreach (var tag in tagsList)
+
+                var existingTag = _context.Tags.FirstOrDefault(x => x.Text.ToLower().Equals(tg.ToLower()));
+                if (existingTag == null)
                 {
-                    var existingTag = img.Tags.FirstOrDefault(x => x.Text.ToLower().Equals(tag.ToLower()));
-                    if (existingTag == null)
+
+
+                    img.Tags.Add(new Tag
                     {
-                        img.Tags.Add(new Tag
-                        {
-                            Text = tag
-                        });
-                    }
-                    else
-                    {
-                        existingTag.Images.Add(img);
-                    }
+                        Text = tg
+                    });
                 }
-                img.User = user;
-                var postedImage = await _context.Images.AddAsync(img);
-                user.Images.Add(img);
-                await _context.SaveChangesAsync();
+                else
+                {
+                    img.Tags.Add(existingTag);
+                }
             }
-            var imgAddressList = new List<string>();
-            foreach (var image in user.Images)
-            {
-                imgAddressList.Add(image.Url);
-            }
-            var userDTO = new UserDTO
-            {
-                Email = user.Email,
-                imageUrls = imgAddressList,
-                Name = user.Name
-            };
-            return Ok(userDTO);
+            user.Images.Add(img);
+
+            await _context.SaveChangesAsync();
+            return Ok();
         }
         // GET /api/users/{id} v
         [HttpGet("{id}")]
@@ -173,6 +159,12 @@ namespace API.Controllers
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
             return Ok();
+        }
+        [HttpGet("{id}/blahblah")]
+        public async Task<IActionResult> GetTags(string id)
+        {
+            var userTag = _context.Tags.Find(new Guid(id));
+            return Ok(userTag);
         }
     }
 }

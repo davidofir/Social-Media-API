@@ -40,7 +40,7 @@ namespace API.Controllers
             var response = ResponseHelper<ImageDTO>.GetPagedResponse("/api/images", imgList, pageNumber, 10, total);
             return Ok(response);
         }
-        // GET /api/images/{id}
+        // GET /api/images/{id} v
         [HttpGet("{id}")]
         public async Task<IActionResult> GetImageById(string id)
         {
@@ -62,6 +62,37 @@ namespace API.Controllers
                 Url = image.Url,
                 UserId = image.User.Id
             });
+        }
+        // GET /api/images/byTag?tag=cars
+        [HttpGet("byTag")]
+        public async Task<IActionResult> GetImagesByTagName(string tag, int pagenumber)
+        {
+            var tags = _context.Tags.Include(x => x.Images).ThenInclude(x => x.User).Where(x => x.Text.ToLower().Equals(tag.ToLower()));
+            if (tags == null)
+                return BadRequest();
+            var total = await tags.CountAsync();
+            var imgList = new List<ImageDTO>();
+            foreach (var tg in tags)
+            {
+                foreach (var img in tg.Images)
+                {
+                    imgList.Add(new ImageDTO
+                    {
+                        Id = img.Id,
+                        Url = img.Url,
+                        UserName = img.User.Name
+                    });
+                }
+            }
+            var response = ResponseHelper<ImageDTO>.GetPagedResponse("/api/images", imgList, pagenumber, 10, total);
+            return Ok(response);
+        }
+
+        [HttpGet("allTags")]
+        public async Task<IActionResult> GetAllTags()
+        {
+            var tags = _context.Tags;
+            return Ok(tags);
         }
         [HttpDelete]
         public async Task<IActionResult> DeleteImages()
