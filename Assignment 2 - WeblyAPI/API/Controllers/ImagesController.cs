@@ -87,12 +87,40 @@ namespace API.Controllers
             var response = ResponseHelper<ImageDTO>.GetPagedResponse("/api/images", imgList, pagenumber, 10, total);
             return Ok(response);
         }
-
-        [HttpGet("allTags")]
-        public async Task<IActionResult> GetAllTags()
+        // GET /api/images/populartags
+        [HttpGet("populartags")]
+        public IActionResult GetPopularTags()
         {
-            var tags = _context.Tags;
-            return Ok(tags);
+            var mostPopularDTO = new List<TagDTO>();
+            var mostPopular = new List<Tag>();
+            int min = 0;
+            foreach (var tg in _context.Tags.Include(x => x.Images))
+            {
+                if (mostPopular.Count < 5)
+                {
+                    mostPopular.Add(tg);
+                }
+                else
+                {
+                    mostPopular = mostPopular.OrderByDescending(x => x.Images.Count).ToList<Tag>();
+                    min = mostPopular[mostPopular.Count - 1].Images.Count;
+                    if (tg.Images.Count > min)
+                    {
+                        mostPopular[mostPopular.Count - 1] = tg;
+                        mostPopular = mostPopular.OrderByDescending(x => x.Images.Count).ToList<Tag>();
+                        min = mostPopular[mostPopular.Count - 1].Images.Count;
+                    }
+                }
+            }
+            for (int i = 0; i < mostPopular.Count; i++)
+            {
+                mostPopularDTO.Add(new TagDTO
+                {
+                    Count = mostPopular[i].Images.Count,
+                    Tag = mostPopular[i].Text
+                });
+            }
+            return Ok(mostPopularDTO);
         }
         [HttpDelete]
         public async Task<IActionResult> DeleteImages()
