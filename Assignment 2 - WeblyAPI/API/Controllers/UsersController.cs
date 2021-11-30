@@ -34,15 +34,30 @@ namespace API.Controllers
         public async Task<IActionResult> AddUsers([FromBody] User user)
         {
             var emailExists = await _context.Users.FirstOrDefaultAsync(usr => usr.Email.ToLower().Equals(user.Email.ToLower()));
-            if (!ModelState.IsValid || emailExists != null)
+            if (emailExists != null)
             {
-                return BadRequest();
+                return BadRequest(new ErrorDTO
+                {
+                    Status = "400",
+                    Title = "Email Already Exists",
+                    Details = "The Email already exists, would you like to sign in instead?"
+                });
+            }
+            if (!ModelState.IsValid)
+            {
+                var errorsList = (from item in ModelState where item.Value.Errors.Any() select item.Value.Errors[0]).ToList();
+                return BadRequest(new ErrorDTO
+                {
+                    Status = "400",
+                    Title = "Invalid format",
+                    Details = errorsList[0].ErrorMessage
+                });
             }
             await _context.Users.AddAsync(user);
             await _context.SaveChangesAsync();
             return Ok(user);
         }
-        // POST /api/users/{id}/image 
+        // POST /api/users/{id}/image
         [HttpPost("{id}/image")]
         public async Task<IActionResult> AddImageToUser(string id, [FromBody] Image img)
         {
@@ -75,7 +90,7 @@ namespace API.Controllers
             await _context.SaveChangesAsync();
             return Ok();
         }
-        // GET /api/users/{id} v
+        // GET /api/users/{id}
         [HttpGet("{id}")]
         public async Task<IActionResult> GetUserAndLast10Images(string id)
         {
@@ -110,7 +125,7 @@ namespace API.Controllers
                 Name = user.Name
             });
         }
-        // GET api/users/{id}/images v
+        // GET api/users/{id}/images
         [HttpGet("{id}/images")]
         public async Task<IActionResult> GetUserImages(string id, [FromQuery] int pagenumber)
         {
@@ -146,12 +161,6 @@ namespace API.Controllers
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
             return Ok();
-        }
-        [HttpGet("{id}/blahblah")]
-        public async Task<IActionResult> GetTags(string id)
-        {
-            var userTag = _context.Tags.Find(new Guid(id));
-            return Ok(userTag);
         }
     }
 }

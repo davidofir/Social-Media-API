@@ -21,7 +21,7 @@ namespace API.Controllers
         {
             _context = context;
         }
-        // GET /api/images v
+        // GET /api/images
         [HttpGet]
         public async Task<IActionResult> GetAllImages([FromQuery] int pageNumber)
         {
@@ -40,15 +40,31 @@ namespace API.Controllers
             var response = ResponseHelper<ImageDTO>.GetPagedResponse("/api/images", imgList, pageNumber, 10, total);
             return Ok(response);
         }
-        // GET /api/images/{id} v
+        // GET /api/images/{id}
         [HttpGet("{id}")]
         public async Task<IActionResult> GetImageById(string id)
         {
+            Guid x;
+            if (!Guid.TryParse(id, out x))
+            {
+                return BadRequest(new ErrorDTO
+                {
+                    Status = "400",
+                    Title = "Invalid Format",
+                    Details = "The specified format of the given user ID is invalid"
+                });
+            }
+
             var image = await _context.Images.Include(x => x.Tags).Include(x => x.User)
             .FirstOrDefaultAsync(x => x.Id.Equals(new Guid(id)));
             if (image == null)
             {
-                return NotFound();
+                return BadRequest(new ErrorDTO
+                {
+                    Status = "404",
+                    Title = "User Not Found",
+                    Details = "The user could not be found in our database"
+                });
             }
             var tagsList = new List<string>();
             foreach (var tag in image.Tags)
@@ -69,7 +85,12 @@ namespace API.Controllers
         {
             var tags = _context.Tags.Include(x => x.Images).ThenInclude(x => x.User).Where(x => x.Text.ToLower().Equals(tag.ToLower()));
             if (tags == null)
-                return BadRequest();
+                return BadRequest(new ErrorDTO
+                {
+                    Status = "404",
+                    Title = "Tag Not Found",
+                    Details = "The tag that you selected could not be found"
+                });
             var total = await tags.CountAsync();
             var imgList = new List<ImageDTO>();
             foreach (var tg in tags)
