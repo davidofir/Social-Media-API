@@ -181,9 +181,37 @@ namespace API.Controllers
                     Title = "User not found",
                     Details = "The user doesn't exist"
                 });
-            // Delete the User and the corresponding images
+
             var foundImages = _context.Images.Include(x => x.User).Where(x => x.User.Id.Equals(new Guid(id)));
-            _context.Images.RemoveRange(foundImages);
+            if (foundImages != null)
+            {
+                var tags = _context.Tags.Include(x => x.Images);
+                // Find the tags that contain the images the user holds, and delete the user references from them
+                foreach (var tg in tags)
+                {
+                    foreach (var img in foundImages)
+                    {
+                        // if the tag only holds the image that is being deleted, delete the tag completely
+                        if (tg.Images.Count == 1 && tg.Images[0].Id.Equals(img.Id))
+                        {
+                            _context.Remove(tg);
+                        }
+                        //otherwise, only delete the reference to the image in the tag's images list
+                        else
+                        {
+                            for (int i = 0; i < tg.Images.Count; i++)
+                            {
+                                if (tg.Images[i].Id.Equals(img.Id))
+                                {
+                                    tg.Images.Remove(tg.Images[i]);
+                                }
+                            }
+                        }
+                    }
+                }
+                // Delete the User and the corresponding images
+                _context.Images.RemoveRange(foundImages);
+            }
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
             return Ok();
