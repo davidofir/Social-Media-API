@@ -156,15 +156,5 @@ namespace API.Controllers
             }
             return Ok(mostPopularDTO);
         }
-        [HttpDelete]
-        public async Task<IActionResult> DeleteImages()
-        {
-            if (_context.Tags.Any())
-                _context.Tags.Remove(_context.Tags.First());
-            if (_context.Images.Any())
-                _context.Images.Remove(_context.Images.First());
-            await _context.SaveChangesAsync();
-            return Ok();
-        }
     }
 }
