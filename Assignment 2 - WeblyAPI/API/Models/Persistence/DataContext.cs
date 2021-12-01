@@ -16,5 +16,6 @@ namespace API.Models.Persistence
         {
             optionsBuilder.UseSqlite("FileName=magic8ball.db");
         }
+
     }
 }
